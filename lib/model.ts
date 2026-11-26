@@ -1,35 +1,35 @@
-// Token Radar model, radar-3: one sealed snapshot in, one ranked board out.
+// radar-3 model: one sealed snapshot in, one ranked board out.
 //
-// The whole model is six factors, each a small function below, so the
-// dashboard can restate it and a reader can check any row by hand:
+// The score is a product of six factors, each computed by its own small
+// function further down, so the dashboard can restate the formula and any
+// reader can check a row by hand:
 //
 //   implied = base x growth x maturity x chain x category x standing
 //
 //   base     = tvl_usd x 0.25
 //   growth   = 1 + clamp(change_7d, -60, 120) / 100 x 1.00
-//   maturity = 0.60 at birth, rising to 1.00 at 540 days, easing to 0.80
-//              after three years (age unknown: 365)
-//   chain    = 1 + 0.025 x min(chains - 1, 8)              (1.00 - 1.20)
-//   category = the table in section 3                      (0.90 - 1.08)
-//   standing = 0.90 + 0.20 x the protocol's TVL rank within its own
-//              category on this board (1.10 leads, 0.90 trails; no
-//              category: 1.00)
+//   maturity = 0.60 at listing, 1.00 at 540 days, 0.80 past 1095 days
+//              (age unknown: 365 days)
+//   chain    = 1 + 0.025 x min(chains - 1, 8)         (1.00 - 1.20)
+//   category = the table in the constants block       (0.90 - 1.08)
+//   standing = 0.90 + 0.20 x the protocol's TVL rank inside its own
+//              category on this board (leader 1.10, smallest 0.90;
+//              no category: 1.00)
 //
-// Only the snapshot's own figures feed it — TVL, seven-day growth, age
-// since listed_at, chain count, category, and the category's own TVL
-// order. No protocol name is ever special-cased: the same function scores
-// every row, and the board is the rows sorted by what it returns.
+// Only the snapshot's own numbers feed the model — TVL, seven-day change,
+// age since listed_at, chain count, category, and the category's own TVL
+// order. No protocol name is ever special-cased: one function scores every
+// row, and the board is the rows sorted by what it returns.
 //
-// Why the shape changed from radar-2: growth now counts at full weight,
+// Why this shape, against radar-2: growth counts at full weight now,
 // because a week's growth is the freshest signal the snapshot carries and
-// radar-2's 0.6 weight left it moving rows by only about 9%; maturity is
-// a hump, not a climb, because a token is most likely while the protocol
-// is proven but still young — a three-year tokenless run signals a team
-// that will never launch — and standing compares each protocol with its
-// own category, so a leader among lenders is not judged against a leader
-// among bridges. TVL still sets the scale: no factor alone can lift a
-// small protocol above a large one, but within a TVL band the other five
-// decide the order.
+// radar-2's 0.6 weight moved rows by only about 9%; maturity is a hump,
+// not a climb, because a token is likeliest while the protocol is proven
+// but still young — a three-year tokenless run signals a team that will
+// never launch; standing compares each protocol with its own category, so
+// a leader among lenders is not judged against a leader among bridges.
+// TVL still sets the scale: no factor alone lifts a small protocol above
+// a large one, but inside a TVL band the other five decide the order.
 //
 // Why breadth and category at all: a protocol live on many chains has
 // distribution a single-chain one does not, so breadth earns a small
@@ -39,7 +39,8 @@
 // protocol's own value.
 
 // ---------------------------------------------------------------------------
-// 1. Shapes: the snapshot, the model, one board row, the dashboard's data.
+// 1. Shapes: the snapshot as sealed, the model, one board row, the data the
+//    dashboard renders.
 // ---------------------------------------------------------------------------
 
 /** One protocol as the sealed snapshot carries it: exactly ten fields. */
