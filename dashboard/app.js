@@ -262,6 +262,15 @@
     };
   }
 
+  // First rule whose test matches the category, or null: every farm table
+  // below is tried in order and the first match wins.
+  function firstMatching(rules, category) {
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i].test(category)) return rules[i];
+    }
+    return null;
+  }
+
   // The main action, as a table: the first category test that matches wins.
   var MAIN_ACTIONS = [
     {
@@ -387,10 +396,8 @@
   ];
 
   function actionFor(p, capital, chain) {
-    var c = (p.category || '').toLowerCase();
-    for (var i = 0; i < MAIN_ACTIONS.length; i++) {
-      if (MAIN_ACTIONS[i].test(c)) return MAIN_ACTIONS[i].build(p, capital, chain);
-    }
+    var rule = firstMatching(MAIN_ACTIONS, (p.category || '').toLowerCase());
+    if (rule) return rule.build(p, capital, chain);
     return 'Deposit $' + capital + ' of USDC into ' + p.name + ' on ' + chain + ' and keep the position open.';
   }
 
@@ -518,10 +525,8 @@
   ];
 
   function weeklyFor(p) {
-    var c = (p.category || '').toLowerCase();
-    for (var i = 0; i < WEEKLY_ACTIONS.length; i++) {
-      if (WEEKLY_ACTIONS[i].test(c)) return WEEKLY_ACTIONS[i].build();
-    }
+    var rule = firstMatching(WEEKLY_ACTIONS, (p.category || '').toLowerCase());
+    if (rule) return rule.build();
     return 'Make one qualifying action each week, such as a deposit, a borrow, a swap or a vote.';
   }
 
@@ -594,9 +599,7 @@
       test: has('yield', 'curator', 'allocator'),
       build: function (p) {
         return (
-          'Check the vault APY and strategy ' +
-          p.name +
-          ' reports once a week; a strategy change is a reason to re-read the plan.'
+          'Check the vault APY and strategy ' + p.name + ' reports once a week; a strategy change is a reason to re-read the plan.'
         );
       },
     },
@@ -669,14 +672,12 @@
   ];
 
   function monitorFor(p) {
-    var c = (p.category || '').toLowerCase();
+    var rule = firstMatching(MONITOR_ACTIONS, (p.category || '').toLowerCase());
     var points =
       ' If ' +
       p.name +
       ' publishes a points or rewards page, confirm the position is counted there; if it publishes none, the on-chain position is the record.';
-    for (var i = 0; i < MONITOR_ACTIONS.length; i++) {
-      if (MONITOR_ACTIONS[i].test(c)) return MONITOR_ACTIONS[i].build(p) + points;
-    }
+    if (rule) return rule.build(p) + points;
     return (
       'Check the position ' +
       p.name +
@@ -799,12 +800,10 @@
   ];
 
   function exitFor(p) {
-    var c = (p.category || '').toLowerCase();
+    var rule = firstMatching(EXIT_ACTIONS, (p.category || '').toLowerCase());
     var claim =
       ' Claim only from the link ' + p.name + ' itself publishes, and never pay a fee to claim.';
-    for (var i = 0; i < EXIT_ACTIONS.length; i++) {
-      if (EXIT_ACTIONS[i].test(c)) return EXIT_ACTIONS[i].build(p) + claim;
-    }
+    if (rule) return rule.build(p) + claim;
     return 'Withdraw the position from ' + p.name + '.' + claim;
   }
 
